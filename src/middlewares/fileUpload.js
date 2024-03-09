@@ -27,15 +27,15 @@ module.exports = function (UPLOADS_FOLDER) {
       fileSize: 2000000, // 2MB
     },
     fileFilter: (req, file, cb) => {
-      if (
-        file.mimetype == "image/jpg" ||
-        file.mimetype == "image/png" ||
-        file.mimetype == "image/jpeg"
-      ) {
-        cb(null, true);
-      } else {
-        cb(new Error("Only jpg, png, jpeg format allowed!"));
-      }
+      // if (
+      //   file.mimetype == "image/jpg" ||
+      //   file.mimetype == "image/png" ||
+      //   file.mimetype == "image/jpeg"
+      // ) {
+      cb(null, true);
+      // } else {
+      //   cb(new Error("Only jpg, png, jpeg format allowed!"));
+      // }
     },
   });
 

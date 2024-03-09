@@ -18,6 +18,7 @@ const {
 
   getRandomContextFromDb,
   deleteQuizFromDb,
+  convertCsvToJson,
 } = require("../services/QuizService");
 const catchAsync = require("../utils/catchAsync");
 const sendResponse = require("../utils/sendResponse");
@@ -176,6 +177,20 @@ const deleteQuiz = catchAsync(async (req, res) => {
     success: true,
   });
 });
+const csvToJson = catchAsync(async (req, res) => {
+  let path = "";
+  if (req?.file) {
+    path = req?.file?.path;
+  }
+  const result = await convertCsvToJson(path);
+
+  sendResponse(res, {
+    statusCode: 200,
+    data: result,
+    message: "quiz converted successfully",
+    success: true,
+  });
+});
 
 module.exports = {
   insertQuiz,
@@ -192,4 +207,5 @@ module.exports = {
   managerLeaderboard,
   deleteQuiz,
   findARandomContext,
+  csvToJson,
 };

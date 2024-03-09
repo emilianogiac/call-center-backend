@@ -4,8 +4,11 @@ const AppError = require("../errors/AppError.js");
 const { Quiz, Question, Answer } = require("../models/Quiz");
 const User = require("../models/User");
 const UserResponse = require("../models/UserResponses");
+const csv = require("csvtojson");
+const XLSX = require("xlsx");
 const mongoose = require("mongoose");
 const LeaderBoard = require("../models/leaderBorad.js");
+
 const insertQuizIntoDB = async (payload) => {
   const { managerId, context, ...others } = payload;
   const session = await mongoose.startSession();
@@ -286,6 +289,78 @@ const deleteQuizFromDb = async (contextId) => {
     throw new Error(err);
   }
 };
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+const convertCsvToJson = async (file) => {
+  try {
+    // const file = require("../../public/uploads/try-csv.csv");
+    console.log("file", file);
+    const convertFile = await csv().fromFile(file);
+    const formattedData = []; // Define formattedData array outside the reducer function
+
+    // Group questions by context
+    convertFile.reduce((acc, item) => {
+      const existingContext = acc.find(
+        (context) => context.context === item.context
+      );
+
+      if (existingContext) {
+        // If context exists, push the question details
+        existingContext.questions.push({
+          question: item.question,
+          answers: shuffleArray([
+            { text: item.correct_ans, isCorrect: true },
+            { text: item.ans_2, isCorrect: false },
+            { text: item.ans_3, isCorrect: false },
+          ]),
+        });
+      } else {
+        // If context doesn't exist, create a new context object and push it to formattedData
+        acc.push({
+          context: item.context,
+          questions: [
+            {
+              question: item.question,
+              answers: shuffleArray([
+                { text: item.correct_ans, isCorrect: true },
+                { text: item.ans_2, isCorrect: false },
+                { text: item.ans_3, isCorrect: false },
+              ]),
+            },
+          ],
+        });
+      }
+
+      return acc;
+    }, formattedData); // Pass formattedData array as the initial value for the accumulator
+
+    for (const row of formattedData) {
+      // Insert context into the database
+      const insertContextIntoDb = await Quiz.create({
+        context: row.context,
+      });
+
+      const contextId = insertContextIntoDb._id;
+
+      for (const question of row.questions) {
+        await Question.create({
+          context: contextId, // Use the _id of the inserted context
+          question: question.question,
+          answers: question.answers,
+        });
+      }
+    }
+    return formattedData;
+  } catch (err) {
+    console.log("err", err);
+  }
+};
+
 module.exports = {
   insertQuizIntoDB,
   getAllQuizs,
@@ -299,4 +374,5 @@ module.exports = {
   getManagerLeaderboard,
   getRandomContextFromDb,
   deleteQuizFromDb,
+  convertCsvToJson,
 };
