@@ -70,6 +70,7 @@ router.get(
 );
 router.post(
   "/bulk-update",
+  auth("manager"),
   [uploadUsers.single("file")],
   parseData(),
   csvToJson

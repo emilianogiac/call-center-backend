@@ -1,3 +1,5 @@
+const httpStatus = require("http-status");
+const AppError = require("../errors/AppError.js");
 const { Quiz } = require("../models/Quiz");
 const User = require("../models/User");
 const UserResponse = require("../models/UserResponses");
@@ -178,11 +180,15 @@ const deleteQuiz = catchAsync(async (req, res) => {
   });
 });
 const csvToJson = catchAsync(async (req, res) => {
+  if (!req?.file || req?.file?.mimetype !== "text/csv") {
+    throw new AppError(httpStatus.BAD_REQUEST, "please select valid file");
+  }
   let path = "";
   if (req?.file) {
     path = req?.file?.path;
   }
-  const result = await convertCsvToJson(path);
+
+  const result = await convertCsvToJson(req.user.userId, path);
 
   sendResponse(res, {
     statusCode: 200,

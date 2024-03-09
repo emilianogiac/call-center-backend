@@ -2,10 +2,11 @@ const mongoose = require("mongoose");
 // Answer Schema
 // Quiz Schema
 const quizSchema = new mongoose.Schema({
-  context: { type: String, required: true },
+  context: { type: String, required: [true, "context is required"] },
   manager: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+    required: [true, "manager id is required"],
   },
 });
 // Model for Answers
@@ -18,6 +19,7 @@ const questionSchema = new mongoose.Schema({
   context: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Quiz",
+    required: [true, "context is required"],
   },
   answers: [answerSchema],
 });
