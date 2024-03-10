@@ -186,7 +186,10 @@ const csvToJson = catchAsync(async (req, res) => {
     req?.file?.mimetype !==
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
   ) {
-    throw new AppError(httpStatus.BAD_REQUEST, "please select valid file");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "please select valid excel file"
+    );
   }
   let path = "";
   if (req?.file) {
