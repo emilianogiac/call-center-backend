@@ -12,7 +12,7 @@ const insertnewDataIntoLeaderBoardDB = async (teamId, payload) => {
     result = await LeaderBoard.findByIdAndUpdate(
       userProgress?._id,
       {
-        $inc: { totalScores: totalScores },
+        $set: { totalScores: totalScores },
         $addToSet: {
           contextId: payload?.contextId,
         },
