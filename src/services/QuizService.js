@@ -8,6 +8,7 @@ const csv = require("csvtojson");
 const mongoose = require("mongoose");
 const LeaderBoard = require("../models/leaderBorad.js");
 const XLSX = require("xlsx");
+const deleteFile = require("../utils/file.utils.js");
 
 const insertQuizIntoDB = async (payload) => {
   const { managerId, context, ...others } = payload;
@@ -340,12 +341,12 @@ const convertCsvToJson = async (managerId, file) => {
 
     return acc;
   }, []);
-  console.log("formatedadata", formatedData[0]?.questions[0]?.answers);
+
   let result;
   const session = await mongoose.startSession();
 
   try {
-    await session.startTransaction();
+    session.startTransaction();
     for (const row of formatedData) {
       // Insert context into the database
       const insertContextIntoDb = await Quiz.create(
@@ -375,10 +376,12 @@ const convertCsvToJson = async (managerId, file) => {
     }
     await session.commitTransaction();
     await session.endSession();
+    await deleteFile(file);
     return formatedData;
   } catch (err) {
     await session.abortTransaction();
     await session.endSession();
+    await deleteFile(file);
     throw new Error(err);
   }
 };
