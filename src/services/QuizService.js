@@ -314,8 +314,8 @@ const convertCsvToJson = async (managerId, file) => {
         question: item.question,
         answers: shuffleArray([
           { text: item?.answer_c, isCorrect: true },
-          { text: item?.answer_1, isCorrect: false },
-          { text: item?.answer_2, isCorrect: false },
+          { text: item?.answer_1 || "N/A", isCorrect: false },
+          { text: item?.answer_2 || "N/A", isCorrect: false },
           { text: item?.answer_3 || "N/A", isCorrect: false },
         ]),
       });
@@ -329,8 +329,8 @@ const convertCsvToJson = async (managerId, file) => {
             question: item.question,
             answers: shuffleArray([
               { text: item.answer_c, isCorrect: true },
-              { text: item.answer_1, isCorrect: false },
-              { text: item.answer_2, isCorrect: false },
+              { text: item.answer_1 || "N/A", isCorrect: false },
+              { text: item.answer_2 || "N/A", isCorrect: false },
               { text: item?.answer_3 || "N/A", isCorrect: false },
             ]),
           },
