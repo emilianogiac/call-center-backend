@@ -180,7 +180,12 @@ const deleteQuiz = catchAsync(async (req, res) => {
   });
 });
 const csvToJson = catchAsync(async (req, res) => {
-  if (!req?.file || req?.file?.mimetype !== "text/csv") {
+  console.log(req?.file);
+  if (
+    !req?.file ||
+    req?.file?.mimetype !==
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ) {
     throw new AppError(httpStatus.BAD_REQUEST, "please select valid file");
   }
   let path = "";

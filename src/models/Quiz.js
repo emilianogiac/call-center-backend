@@ -11,7 +11,7 @@ const quizSchema = new mongoose.Schema({
 });
 // Model for Answers
 const answerSchema = new mongoose.Schema({
-  text: { type: String, required: true },
+  text: { type: String },
   isCorrect: { type: Boolean },
 });
 const questionSchema = new mongoose.Schema({

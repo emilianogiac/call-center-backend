@@ -5,9 +5,9 @@ const { Quiz, Question, Answer } = require("../models/Quiz");
 const User = require("../models/User");
 const UserResponse = require("../models/UserResponses");
 const csv = require("csvtojson");
-const XLSX = require("xlsx");
 const mongoose = require("mongoose");
 const LeaderBoard = require("../models/leaderBorad.js");
+const XLSX = require("xlsx");
 
 const insertQuizIntoDB = async (payload) => {
   const { managerId, context, ...others } = payload;
@@ -297,8 +297,11 @@ const shuffleArray = (array) => {
   return array;
 };
 const convertCsvToJson = async (managerId, file) => {
-  const convertFile = await csv().fromFile(file);
-
+  // const convertFile = await csv().fromFile(file);
+  const workbook = XLSX.readFile(file);
+  const sheetName = workbook.SheetNames[0]; // Get the first sheet by default
+  const worksheet = workbook.Sheets[sheetName];
+  const convertFile = XLSX.utils.sheet_to_json(worksheet);
   // Group questions by context
   const formatedData = convertFile.reduce((acc, item) => {
     const existingContext = acc.find(
@@ -310,9 +313,10 @@ const convertCsvToJson = async (managerId, file) => {
       existingContext.questions.push({
         question: item.question,
         answers: shuffleArray([
-          { text: item.correct_ans, isCorrect: true },
-          { text: item.ans_2, isCorrect: false },
-          { text: item.ans_3, isCorrect: false },
+          { text: item?.answer_c, isCorrect: true },
+          { text: item?.answer_1, isCorrect: false },
+          { text: item?.answer_2, isCorrect: false },
+          { text: item?.answer_3 || "N/A", isCorrect: false },
         ]),
       });
     } else {
@@ -324,9 +328,10 @@ const convertCsvToJson = async (managerId, file) => {
           {
             question: item.question,
             answers: shuffleArray([
-              { text: item.correct_ans, isCorrect: true },
-              { text: item.ans_2, isCorrect: false },
-              { text: item.ans_3, isCorrect: false },
+              { text: item.answer_c, isCorrect: true },
+              { text: item.answer_1, isCorrect: false },
+              { text: item.answer_2, isCorrect: false },
+              { text: item?.answer_3 || "N/A", isCorrect: false },
             ]),
           },
         ],
@@ -335,25 +340,47 @@ const convertCsvToJson = async (managerId, file) => {
 
     return acc;
   }, []);
+  console.log("formatedadata", formatedData[0]?.questions[0]?.answers);
+  let result;
+  const session = await mongoose.startSession();
 
-  for (const row of formatedData) {
-    // Insert context into the database
-    const insertContextIntoDb = await Quiz.create({
-      context: row.context,
-      manager: managerId,
-    });
+  try {
+    await session.startTransaction();
+    for (const row of formatedData) {
+      // Insert context into the database
+      const insertContextIntoDb = await Quiz.create(
+        [
+          {
+            context: row.context,
+            manager: managerId,
+          },
+        ],
+        { session }
+      );
 
-    const contextId = insertContextIntoDb._id;
+      const contextId = insertContextIntoDb[0]._id;
 
-    for (const question of row.questions) {
-      await Question.create({
-        context: contextId, // Use the _id of the inserted context
-        question: question.question,
-        answers: question.answers,
-      });
+      for (const question of row.questions) {
+        result = await Question.create(
+          [
+            {
+              context: contextId, // Use the _id of the inserted context
+              question: question.question,
+              answers: question.answers,
+            },
+          ],
+          { session }
+        );
+      }
     }
+    await session.commitTransaction();
+    await session.endSession();
+    return formatedData;
+  } catch (err) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw new Error(err);
   }
-  return formatedData;
 };
 
 module.exports = {
