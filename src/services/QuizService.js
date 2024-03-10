@@ -4,8 +4,11 @@ const AppError = require("../errors/AppError.js");
 const { Quiz, Question, Answer } = require("../models/Quiz");
 const User = require("../models/User");
 const UserResponse = require("../models/UserResponses");
+const csv = require("csvtojson");
 const mongoose = require("mongoose");
 const LeaderBoard = require("../models/leaderBorad.js");
+const XLSX = require("xlsx");
+
 const insertQuizIntoDB = async (payload) => {
   const { managerId, context, ...others } = payload;
   const session = await mongoose.startSession();
@@ -286,6 +289,100 @@ const deleteQuizFromDb = async (contextId) => {
     throw new Error(err);
   }
 };
+const shuffleArray = (array) => {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+};
+const convertCsvToJson = async (managerId, file) => {
+  // const convertFile = await csv().fromFile(file);
+  const workbook = XLSX.readFile(file);
+  const sheetName = workbook.SheetNames[0]; // Get the first sheet by default
+  const worksheet = workbook.Sheets[sheetName];
+  const convertFile = XLSX.utils.sheet_to_json(worksheet);
+  // Group questions by context
+  const formatedData = convertFile.reduce((acc, item) => {
+    const existingContext = acc.find(
+      (context) => context.context === item.context
+    );
+
+    if (existingContext) {
+      // If context exists, push the question details
+      existingContext.questions.push({
+        question: item.question,
+        answers: shuffleArray([
+          { text: item?.answer_c, isCorrect: true },
+          { text: item?.answer_1, isCorrect: false },
+          { text: item?.answer_2, isCorrect: false },
+          { text: item?.answer_3 || "N/A", isCorrect: false },
+        ]),
+      });
+    } else {
+      // If context doesn't exist, create a new context object and push it to formattedData
+      acc.push({
+        manager: managerId,
+        context: item.context,
+        questions: [
+          {
+            question: item.question,
+            answers: shuffleArray([
+              { text: item.answer_c, isCorrect: true },
+              { text: item.answer_1, isCorrect: false },
+              { text: item.answer_2, isCorrect: false },
+              { text: item?.answer_3 || "N/A", isCorrect: false },
+            ]),
+          },
+        ],
+      });
+    }
+
+    return acc;
+  }, []);
+  console.log("formatedadata", formatedData[0]?.questions[0]?.answers);
+  let result;
+  const session = await mongoose.startSession();
+
+  try {
+    await session.startTransaction();
+    for (const row of formatedData) {
+      // Insert context into the database
+      const insertContextIntoDb = await Quiz.create(
+        [
+          {
+            context: row.context,
+            manager: managerId,
+          },
+        ],
+        { session }
+      );
+
+      const contextId = insertContextIntoDb[0]._id;
+
+      for (const question of row.questions) {
+        result = await Question.create(
+          [
+            {
+              context: contextId, // Use the _id of the inserted context
+              question: question.question,
+              answers: question.answers,
+            },
+          ],
+          { session }
+        );
+      }
+    }
+    await session.commitTransaction();
+    await session.endSession();
+    return formatedData;
+  } catch (err) {
+    await session.abortTransaction();
+    await session.endSession();
+    throw new Error(err);
+  }
+};
+
 module.exports = {
   insertQuizIntoDB,
   getAllQuizs,
@@ -299,4 +396,5 @@ module.exports = {
   getManagerLeaderboard,
   getRandomContextFromDb,
   deleteQuizFromDb,
+  convertCsvToJson,
 };

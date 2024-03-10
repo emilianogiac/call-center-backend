@@ -1,3 +1,5 @@
+const httpStatus = require("http-status");
+const AppError = require("../errors/AppError.js");
 const { Quiz } = require("../models/Quiz");
 const User = require("../models/User");
 const UserResponse = require("../models/UserResponses");
@@ -18,6 +20,7 @@ const {
 
   getRandomContextFromDb,
   deleteQuizFromDb,
+  convertCsvToJson,
 } = require("../services/QuizService");
 const catchAsync = require("../utils/catchAsync");
 const sendResponse = require("../utils/sendResponse");
@@ -176,6 +179,29 @@ const deleteQuiz = catchAsync(async (req, res) => {
     success: true,
   });
 });
+const csvToJson = catchAsync(async (req, res) => {
+  console.log(req?.file);
+  if (
+    !req?.file ||
+    req?.file?.mimetype !==
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+  ) {
+    throw new AppError(httpStatus.BAD_REQUEST, "please select valid file");
+  }
+  let path = "";
+  if (req?.file) {
+    path = req?.file?.path;
+  }
+
+  const result = await convertCsvToJson(req.user.userId, path);
+
+  sendResponse(res, {
+    statusCode: 200,
+    data: result,
+    message: "quiz converted successfully",
+    success: true,
+  });
+});
 
 module.exports = {
   insertQuiz,
@@ -192,4 +218,5 @@ module.exports = {
   managerLeaderboard,
   deleteQuiz,
   findARandomContext,
+  csvToJson,
 };

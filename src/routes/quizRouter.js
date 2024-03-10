@@ -1,4 +1,7 @@
 const express = require("express");
+const userFileUploadMiddleware = require("../middlewares/fileUpload");
+const UPLOADS_FOLDER_USERS = "./public/uploads/quiz";
+const uploadUsers = userFileUploadMiddleware(UPLOADS_FOLDER_USERS);
 const {
   getAllQuizzes,
   answerQuestion,
@@ -14,8 +17,10 @@ const {
   insertQuiz,
   findARandomContext,
   deleteQuiz,
+  csvToJson,
 } = require("../controllers/quizController");
 const auth = require("../middlewares/auth");
+const parseData = require("../middlewares/parseData.js");
 const router = express.Router();
 // Create a new quiz
 router.post("/", auth("manager"), insertQuiz);
@@ -62,6 +67,13 @@ router.get(
   "/manager-wise-scores/:managerId",
   auth("manager"),
   managerWiseScores
+);
+router.post(
+  "/bulk-update",
+  auth("manager"),
+  [uploadUsers.single("file")],
+  parseData(),
+  csvToJson
 );
 router.delete("/:id", auth("manager", "user"), deleteQuiz);
 module.exports = router;
