@@ -1,7 +1,6 @@
 const express = require("express");
 const userFileUploadMiddleware = require("../middlewares/fileUpload");
-const UPLOADS_FOLDER_USERS = "./public/uploads/quiz";
-const uploadUsers = userFileUploadMiddleware(UPLOADS_FOLDER_USERS);
+
 const {
   getAllQuizzes,
   answerQuestion,
@@ -21,6 +20,19 @@ const {
 } = require("../controllers/quizController");
 const auth = require("../middlewares/auth");
 const parseData = require("../middlewares/parseData.js");
+const UPLOADS_FOLDER_USERS = "./public/uploads/quiz";
+const uploadUsers = userFileUploadMiddleware(UPLOADS_FOLDER_USERS);
+const fs = require("fs");
+if (!fs.existsSync(UPLOADS_FOLDER_USERS)) {
+  // If not, create the folder
+  fs.mkdirSync(UPLOADS_FOLDER_USERS, { recursive: true }, (err) => {
+    if (err) {
+      console.error("Error creating uploads folder:", err);
+    } else {
+      console.log("Uploads folder created successfully");
+    }
+  });
+}
 const router = express.Router();
 // Create a new quiz
 router.post("/", auth("manager"), insertQuiz);
